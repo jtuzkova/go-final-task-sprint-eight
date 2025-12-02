@@ -46,6 +46,7 @@ func TestAddGetDelete(t *testing.T) {
 	// get
 	new, err := store.Get(id)
 	require.NoError(t, err)
+	assert.Equal(t, id, new.Number)
 	assert.Equal(t, parcel.Client, new.Client)
 	assert.Equal(t, parcel.Status, new.Status)
 	assert.Equal(t, parcel.Address, new.Address)
@@ -137,12 +138,13 @@ func TestGetByClient(t *testing.T) {
 
 	// get by client
 	storedParcels, err := store.GetByClient(client)
-	require.NoError(t, err)
-	require.Len(t, storedParcels, len(parcels))
+	assert.NoError(t, err)
+	assert.Len(t, storedParcels, len(parcels))
 	// check
 	for _, parcel := range storedParcels {
-		orig, ok := parcelMap[parcel.Number]
-		require.True(t, ok, "parcel with number %d not found in parcelMap", parcel.Number)
+		assert.Contains(t, parcelMap, parcel.Number)
+		orig := parcelMap[parcel.Number]
+		assert.Equal(t, orig, parcel)
 		require.Equal(t, orig.Client, parcel.Client)
         require.Equal(t, orig.Status, parcel.Status)
         require.Equal(t, orig.Address, parcel.Address)

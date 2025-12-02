@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"errors"
+	// "errors"
 )
 
 type ParcelStore struct {
@@ -37,8 +37,10 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 		sql.Named("number", number))
 	
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
-
-	return p, err
+	if err != nil {
+        return p, err 
+	}
+	return p, nil
 }
 
 func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
@@ -62,7 +64,11 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 		res = append(res, p)
 	}
 
-	return res, err
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (s ParcelStore) SetStatus(number int, status string) error {
@@ -74,35 +80,18 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 }
 
 func (s ParcelStore) SetAddress(number int, address string) error {
-	var curStatus string
-	row := s.db.QueryRow("SELECT status FROM parcel WHERE number = :number", sql.Named("number", number))
-	err := row.Scan(&curStatus)
-	if err != nil {
-		return err
-	}
-
-	if curStatus != ParcelStatusRegistered {
-		return errors.New("address can be changed only if status is 'registered'")
-	}
-	_, err = s.db.Exec("UPDATE parcel set address = :address WHERE number = :number",
+	_, err := s.db.Exec("UPDATE parcel set address = :address WHERE number = :number and status = :status",
 		sql.Named("address", address),
-		sql.Named("number", number))
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered))
 
 	return err
 }
 
 func (s ParcelStore) Delete(number int) error {
-	var curStatus string
-	row := s.db.QueryRow("SELECT status FROM parcel WHERE number = :number", sql.Named("number", number))
-	err := row.Scan(&curStatus)
-	if err != nil {
-		return err
-	}
-
-	if curStatus != ParcelStatusRegistered {
-		return errors.New("address can be changed")
-	}
-
-	_, err = s.db.Exec("DELETE FROM parcel WHERE number = :number", sql.Named("number", number))
+	_, err := s.db.Exec("DELETE FROM parcel WHERE number = :number and status = :status", 
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered))
+		
     return err
 }
